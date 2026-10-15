@@ -1,0 +1,69 @@
+{
+  "instances": {
+    "SD2_Rampart_Embrasures": 1279,
+    "SD2_Rampart_Stairs": 23,
+    "SD2_Scatter_Coconut": 71,
+    "SD2_Scatter_Broadleaf": 55,
+    "SD2_Scatter_Scrub": 144,
+    "SD2_Scatter_Grass": 4400,
+    "SD2_Shore_Rocks": 982
+  },
+  "wall_geometry": {
+    "verts": 1832,
+    "faces": 1815,
+    "edges_not_two_faces": 0,
+    "z_bounds": [
+      0.4000000059604645,
+      9.543999671936035
+    ]
+  },
+  "camera_motion": [
+    {
+      "frame": 1,
+      "camera_position": [
+        850.0,
+        -1100.0,
+        1100.0
+      ]
+    },
+    {
+      "frame": 48,
+      "camera_position": [
+        850.0,
+        -1100.0,
+        1100.0
+      ]
+    },
+    {
+      "frame": 120,
+      "camera_position": [
+        983.2122192382812,
+        -986.5313720703125,
+        1100.0
+      ]
+    },
+    {
+      "frame": 192,
+      "camera_position": [
+        1100.5909423828125,
+        -856.7513427734375,
+        1100.0
+      ]
+    },
+    {
+      "frame": 240,
+      "camera_position": [
+        1100.5909423828125,
+        -856.7513427734375,
+        1100.0
+      ]
+    }
+  ],
+  "original_scene_objects": 480,
+  "new_scene_objects": 135,
+  "renders": [
+    "Sindhudurg_aerial.png",
+    "Sindhudurg_plan.png",
+    "Sindhudurg_interior.png"
+  ]
+}

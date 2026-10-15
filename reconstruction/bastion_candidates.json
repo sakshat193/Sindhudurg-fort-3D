@@ -1,0 +1,572 @@
+[
+  {
+    "ids": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "chord": 16.6,
+    "area": 127.2,
+    "turn": 162.8,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "chord": 19.8,
+    "area": 330.5,
+    "turn": 199.3,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "chord": 38.8,
+    "area": 338.1,
+    "turn": 161.0,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      19,
+      20,
+      21,
+      22,
+      23,
+      24
+    ],
+    "chord": 43.0,
+    "area": 664.7,
+    "turn": 142.3,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    "chord": 28.6,
+    "area": 269.3,
+    "turn": 110.6,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      31,
+      32,
+      33,
+      34,
+      35
+    ],
+    "chord": 17.2,
+    "area": 213.5,
+    "turn": 178.8,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      48,
+      49,
+      50,
+      51
+    ],
+    "chord": 15.2,
+    "area": 131.3,
+    "turn": 157.1,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61
+    ],
+    "chord": 9.3,
+    "area": 151.9,
+    "turn": 234.0,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71
+    ],
+    "chord": 72.2,
+    "area": 1733.6,
+    "turn": 187.0,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78
+    ],
+    "chord": 29.5,
+    "area": 331.5,
+    "turn": 138.6,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      84,
+      85,
+      86,
+      87,
+      88
+    ],
+    "chord": 14.0,
+    "area": 140.1,
+    "turn": 187.3,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      91,
+      92,
+      93,
+      94
+    ],
+    "chord": 35.6,
+    "area": 229.4,
+    "turn": 83.4,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      99,
+      100,
+      101,
+      102,
+      103,
+      104
+    ],
+    "chord": 18.6,
+    "area": 93.8,
+    "turn": 132.0,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      107,
+      108,
+      109,
+      110,
+      111
+    ],
+    "chord": 16.3,
+    "area": 125.7,
+    "turn": 167.7,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      117,
+      118,
+      119,
+      120,
+      121,
+      122
+    ],
+    "chord": 13.0,
+    "area": 139.7,
+    "turn": 196.2,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      127,
+      128,
+      129,
+      130,
+      131,
+      132
+    ],
+    "chord": 14.7,
+    "area": 160.4,
+    "turn": 193.1,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      134,
+      135,
+      136,
+      137,
+      138
+    ],
+    "chord": 14.6,
+    "area": 88.7,
+    "turn": 141.1,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146
+    ],
+    "chord": 13.2,
+    "area": 209.5,
+    "turn": 205.3,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161
+    ],
+    "chord": 91.1,
+    "area": 1241.5,
+    "turn": 125.4,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      161,
+      162,
+      163,
+      164,
+      165,
+      166
+    ],
+    "chord": 20.1,
+    "area": 199.8,
+    "turn": 171.1,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176
+    ],
+    "chord": 16.2,
+    "area": 135.8,
+    "turn": 192.7,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186
+    ],
+    "chord": 15.3,
+    "area": 155.2,
+    "turn": 163.8,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      190,
+      191,
+      192,
+      193,
+      194,
+      195
+    ],
+    "chord": 14.9,
+    "area": 112.3,
+    "turn": 163.5,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206
+    ],
+    "chord": 22.5,
+    "area": 439.3,
+    "turn": 260.3,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      208,
+      209,
+      210,
+      211,
+      212
+    ],
+    "chord": 12.2,
+    "area": 136.4,
+    "turn": 200.0,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227
+    ],
+    "chord": 11.4,
+    "area": 139.6,
+    "turn": 213.6,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236
+    ],
+    "chord": 18.1,
+    "area": 136.1,
+    "turn": 135.9,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244
+    ],
+    "chord": 14.1,
+    "area": 76.9,
+    "turn": 147.5,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      246,
+      247,
+      248,
+      249,
+      250,
+      251
+    ],
+    "chord": 14.3,
+    "area": 71.5,
+    "turn": 144.1,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261
+    ],
+    "chord": 10.2,
+    "area": 166.1,
+    "turn": 234.5,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      266,
+      267,
+      268,
+      269,
+      270,
+      271
+    ],
+    "chord": 18.3,
+    "area": 154.0,
+    "turn": 146.4,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      282,
+      283,
+      284,
+      285,
+      286,
+      287
+    ],
+    "chord": 19.9,
+    "area": 162.3,
+    "turn": 143.4,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      290,
+      291,
+      292,
+      293
+    ],
+    "chord": 14.6,
+    "area": 86.2,
+    "turn": 134.6,
+    "confidence": "clear projecting arc"
+  },
+  {
+    "ids": [
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      94,
+      95,
+      96,
+      97,
+      98
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      212,
+      213,
+      214,
+      215,
+      216,
+      217,
+      218
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      261,
+      262,
+      263,
+      264,
+      265,
+      266
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      272,
+      273,
+      274,
+      275,
+      276,
+      277,
+      278,
+      279
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      296,
+      297,
+      298,
+      0,
+      1,
+      2,
+      3
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      24,
+      25,
+      26,
+      27
+    ],
+    "confidence": "provisional corner or entry terrace"
+  },
+  {
+    "ids": [
+      150,
+      151,
+      152,
+      153
+    ],
+    "confidence": "provisional corner or entry terrace"
+  }
+]
