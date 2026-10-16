@@ -77,5 +77,5 @@ report={'counts':counts,'minimum_planar_footprint_gaps_m':gaps,'passed':True,
         'wall_height_propagation':{'wall_delta_m':after[0]-before[0],'bastion_deck_delta_m':after[1]-before[1]},
         'mesh_checks':mesh_checks,'original_objects':480,'instances':dict(instance_counts),
         'bastion_features':42,'clear_projecting_arcs':33,'provisional_corner_terraces':9}
-(ROOT/'scatter_collision_validation.json').write_text(json.dumps(report,indent=2))
+(ROOT/'data'/'scatter_collision_validation.json').write_text(json.dumps(report,indent=2))
 result=report

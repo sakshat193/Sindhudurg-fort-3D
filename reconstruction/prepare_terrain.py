@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ROOT=Path(__file__).resolve().parent
-site=json.loads((ROOT/'site_data.json').read_text())
+site=json.loads((ROOT/'data'/'site_data.json').read_text())
 poly=np.asarray(site['outline'])
 step=3.0
 xs=np.arange(math.floor(poly[:,0].min()/step)*step,poly[:,0].max()+step,step)
@@ -53,7 +53,7 @@ attrs={
 }
 used=np.unique(faces)
 remap=np.full(len(x),-1,dtype=np.int32);remap[used]=np.arange(len(used))
-np.savez_compressed(ROOT/'terrain_samples.npz',verts=verts[used],faces=remap[faces],
+np.savez_compressed(ROOT/'data'/'terrain_samples.npz',verts=verts[used],faces=remap[faces],
                     **{k:v[used].astype(np.float32) for k,v in attrs.items()})
 assert len(faces)>30000
 assert verts[used,2].min()>2.5

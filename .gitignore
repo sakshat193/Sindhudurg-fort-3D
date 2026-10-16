@@ -1,3 +1,4 @@
+# Dependencies and tool state
 node_modules/
 .claude/
 .codex/
@@ -8,12 +9,25 @@ node_modules/
 .sites-checkout/
 __pycache__/
 *.py[cod]
-*.log
+
+# Blender backups (keep scenes in blend/)
 *.blend[0-9]*
+
+# Transient outputs
+*.log
+*.tmp
+*.bak
+reconstruction/data/render_status.json
+web/*.png
+web/dist/_*.html
+
+# Archives and deploy bundles
 *.zip
 *.rar
 *.tar
 *.7z
-*.tmp
-*.bak
-web/dist/_*.html
+
+# OS clutter
+Thumbs.db
+desktop.ini
+.DS_Store

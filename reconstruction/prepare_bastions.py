@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 ROOT=Path(__file__).resolve().parent
-data=json.loads((ROOT/'site_data.json').read_text())
+data=json.loads((ROOT/'data'/'site_data.json').read_text())
 p=np.asarray(data['outline'])
 prev=p-np.roll(p,1,axis=0);nxt=np.roll(p,-1,axis=0)-p
 ang=np.degrees(np.arctan2(prev[:,0]*nxt[:,1]-prev[:,1]*nxt[:,0],(prev*nxt).sum(axis=1)))
@@ -25,7 +25,7 @@ for a,b in [(36,42),(94,98),(111,117),(212,218),(261,266),(272,279),(296,3),(24,
     ids=(np.arange(a,a+1+(b-a)%len(p)))%len(p)
     candidates.append(dict(ids=ids.tolist(),confidence='provisional corner or entry terrace'))
 assert len(candidates)==42
-(ROOT/'bastion_candidates.json').write_text(json.dumps(candidates,indent=2))
+(ROOT/'data'/'bastion_candidates.json').write_text(json.dumps(candidates,indent=2))
 im=Image.open(ROOT.parent/'SAT/GOOGLE_SAT_WM.tif').convert('RGB');dr=ImageDraw.Draw(im)
 for k,c in enumerate(candidates):
     center=p[c['ids']].mean(axis=0)
@@ -33,6 +33,6 @@ for k,c in enumerate(candidates):
     y=-(center[1]/data['correction']-data['map_origin_image_empty'][1])/data['worldfile'][0]+512-.5
     dr.ellipse((x-5,y-5,x+5,y+5),outline='yellow',width=2)
     dr.text((x+6,y-8),str(k+1),fill='yellow')
-im.crop((700,220,1240,960)).resize((1080,1480)).save(ROOT/'bastion_candidates.png')
+im.crop((700,220,1240,960)).resize((1080,1480)).save(ROOT/'images'/'bastion_candidates.png')
 print('Candidates:',len(candidates))
 print([(c['ids'][0],c['ids'][-1],c['confidence']) for c in candidates])

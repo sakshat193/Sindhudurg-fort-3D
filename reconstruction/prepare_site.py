@@ -7,8 +7,8 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent
 WORK = ROOT.parent
-mesh = json.loads((ROOT / 'draft_trace_mesh.json').read_text())
-meta = json.loads((ROOT / 'draft_sat_meta.json').read_text())
+mesh = json.loads((ROOT/'data'/'draft_trace_mesh.json').read_text())
+meta = json.loads((ROOT/'data'/'draft_sat_meta.json').read_text())
 wf = [float(x) for x in (WORK / 'SAT/GOOGLE_SAT_WM.wld').read_text().split()]
 im = Image.open(WORK / 'SAT/GOOGLE_SAT_WM.tif').convert('RGB')
 width, height = im.size
@@ -83,7 +83,7 @@ data = dict(outline=outline, area_m2=area, perimeter_m=perimeter,
             shivrajeshwar_px=[978,545], mahadev_px=[945,548], kund_px=[945,558],
             # Count is documented, contour is image-based; no invented evenly-spaced towers.
             documented_bastions=42)
-(ROOT / 'site_data.json').write_text(json.dumps(data,indent=2))
+(ROOT/'data'/'site_data.json').write_text(json.dumps(data,indent=2))
 
 draw = ImageDraw.Draw(im)
 pp = [tuple(xy_to_pixel(p)) for p in outline]
@@ -91,5 +91,5 @@ draw.line(pp+[pp[0]],fill=(255,220,20),width=2)
 for path in paths_px:
     draw.line([tuple(p) for p in path], fill=(70,220,255), width=2)
 draw.text((720,230),f'{area/10000:.2f} ha  |  {perimeter:.0f}m perimeter  |  north up',fill='white')
-im.crop((700,220,1290,960)).save(ROOT / 'mapped_plan.png')
+im.crop((700,220,1290,960)).save(ROOT/'images'/'mapped_plan.png')
 print(json.dumps({k:data[k] for k in ['area_m2','perimeter_m','correction','satellite_pixel_m']}))

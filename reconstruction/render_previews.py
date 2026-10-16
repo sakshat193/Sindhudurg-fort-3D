@@ -13,15 +13,15 @@ s.render.resolution_x=1400;s.render.resolution_y=1050;s.render.resolution_percen
 s.render.image_settings.file_format='PNG'
 s.frame_set(1)
 s.camera=bpy.data.objects['SD2_CAM_Aerial']
-s.render.filepath=str(ROOT/'Sindhudurg_aerial.png')
+s.render.filepath=str(ROOT/'images'/'Sindhudurg_aerial.png')
 bpy.ops.render.render(write_still=True)
-(ROOT/'render_status.json').write_text(json.dumps({'stage':'Aerial complete; rendering north-up plan'}))
+(ROOT/'data'/'render_status.json').write_text(json.dumps({'stage':'Aerial complete; rendering north-up plan'}))
 s.camera=bpy.data.objects['SD2_CAM_Top_North']
 s.render.resolution_x=1100;s.render.resolution_y=1500
 s.camera.data.ortho_scale=920
-s.render.filepath=str(ROOT/'Sindhudurg_plan.png')
+s.render.filepath=str(ROOT/'images'/'Sindhudurg_plan.png')
 bpy.ops.render.render(write_still=True)
-(ROOT/'render_status.json').write_text(json.dumps({'stage':'Plan complete; rendering interior detail'}))
+(ROOT/'data'/'render_status.json').write_text(json.dumps({'stage':'Plan complete; rendering interior detail'}))
 
 # A feature camera proves wall contact and plant shape at an inspectable scale.
 cd=bpy.data.cameras.new('CHECK_Camera');cam=bpy.data.objects.new('CHECK_Camera',cd)
@@ -30,7 +30,7 @@ cam.location=(150,-100,100);target=Vector((45,25,3))
 cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler()
 cd.type='ORTHO';cd.ortho_scale=180;cd.clip_end=5000;s.camera=cam
 s.render.resolution_x=1400;s.render.resolution_y=1050
-s.render.filepath=str(ROOT/'Sindhudurg_interior.png')
+s.render.filepath=str(ROOT/'images'/'Sindhudurg_interior.png')
 bpy.ops.render.render(write_still=True)
 bpy.data.objects.remove(cam,do_unlink=True)
 
@@ -63,6 +63,6 @@ assert not any(n.bl_idname=='GeometryNodeRealizeInstances' for g in bpy.data.nod
 report={'instances':dict(counts),'wall_geometry':wall_stats,'camera_motion':poses,
         'original_scene_objects':480,'new_scene_objects':len(s.objects),
         'renders':['Sindhudurg_aerial.png','Sindhudurg_plan.png','Sindhudurg_interior.png']}
-(ROOT/'validation.json').write_text(json.dumps(report,indent=2))
-(ROOT/'render_status.json').write_text(json.dumps({'stage':'complete'}))
+(ROOT/'data'/'validation.json').write_text(json.dumps(report,indent=2))
+(ROOT/'data'/'render_status.json').write_text(json.dumps({'stage':'complete'}))
 print('SINDHUDURG_VALIDATION '+json.dumps(report))

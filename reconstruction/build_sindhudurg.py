@@ -11,7 +11,7 @@ from mathutils import Vector
 from mathutils.geometry import tessellate_polygon
 
 ROOT=Path(r'B:\Blender\Blender_Fort_Reconstruction\reconstruction')
-SITE=json.loads((ROOT/'site_data.json').read_text())
+SITE=json.loads((ROOT/'data'/'site_data.json').read_text())
 TRACE=SITE['outline']
 SCENE='Sindhudurg_1to1'
 PREFIX='SD2_'
@@ -193,7 +193,7 @@ def make_wall():
 
 def terrain():
     c=empty_collection('40_Terrain_Sea')
-    samples=np.load(ROOT/'terrain_samples.npz')
+    samples=np.load(ROOT/'data'/'terrain_samples.npz')
     o=obj_mesh('Terrain_Interior',samples['verts'].tolist(),samples['faces'].tolist(),c,[material('SD_Ground_Soil')])
     for key in ('coconut_density','broadleaf_density','scrub_density','grass_density','satellite_green','wall_clearance'):
         attr(o,key,samples[key])
@@ -405,7 +405,7 @@ def paths_and_interior():
     vv=[Vector((x,y,.33)) for x,y in beach]
     obj_mesh('Beach_West_Cove',[tuple(p) for p in vv],tessellate_polygon([vv]),cg,[material('SD_Sand')])
     exclusions.append((*kund,8))
-    (ROOT/'feature_exclusions.json').write_text(json.dumps(exclusions))
+    (ROOT/'data'/'feature_exclusions.json').write_text(json.dumps(exclusions))
     # Cut actual well mouths in the support surfaces, using closed cutter volumes.
     mb=MB()
     for x,y,r,z in hole_centres:
@@ -516,9 +516,9 @@ def scatter(name,source,proto,attribute,density,spacing,seed,scale):
 
 def flora():
     terrain_obj=bpy.data.objects[PREFIX+'Terrain_Interior']
-    samples=np.load(ROOT/'terrain_samples.npz');verts=samples['verts'];x,y=verts[:,:2].T
+    samples=np.load(ROOT/'data'/'terrain_samples.npz');verts=samples['verts'];x,y=verts[:,:2].T
     free=np.ones(len(x),dtype=float)
-    exclusions=json.loads((ROOT/'feature_exclusions.json').read_text())
+    exclusions=json.loads((ROOT/'data'/'feature_exclusions.json').read_text())
     for cx,cy,r in exclusions:free*=np.clip((np.hypot(x-cx,y-cy)-r)/3,0,1)
     for path in SITE['paths']:
         for a,b in zip(path,path[1:]):
@@ -595,7 +595,7 @@ def documentation():
     text=bpy.data.texts.get(PREFIX+'build_sindhudurg.py') or bpy.data.texts.new(PREFIX+'build_sindhudurg.py')
     text.clear();text.write(source)
     note=bpy.data.texts.get(PREFIX+'RECONSTRUCTION_NOTES') or bpy.data.texts.new(PREFIX+'RECONSTRUCTION_NOTES')
-    note.clear();note.write((ROOT/'PLAN.md').read_text())
+    note.clear();note.write((ROOT.parent/'docs'/'reconstruction'/'PLAN.md').read_text())
     note.write('\n\nEDITING\nWall dimensions: select SD2_Wall_Mapped_Rampart > Geometry Nodes modifier.\n')
     note.write('Flora controls: SD2_Occupancy_All_Trees / Occupancy_Scrub / Occupancy_Grass modifiers. Density, seed and spacing are editable; spacing is clamped to safe scaled footprints.\n')
     note.write('Density attributes are on SD2_Terrain_Interior (POINT domain floats), sampled from satellite and cleared around features.\n')
@@ -612,7 +612,7 @@ def documentation():
 
 def bastion_decks():
     c=empty_collection('12_Bastion_Platforms')
-    candidates=json.loads((ROOT/'bastion_candidates.json').read_text())
+    candidates=json.loads((ROOT/'data'/'bastion_candidates.json').read_text())
     inner=offset(TRACE,.72,max_miter=2.0);ns=seg_normals(TRACE)
     mb=MB();fractions=[];footprints=[]
     for k,candidate in enumerate(candidates):
@@ -662,7 +662,7 @@ def bastion_decks():
     bo=o.modifiers.new('Entrance remains open through gate terraces','BOOLEAN');bo.operation='DIFFERENCE';bo.solver='EXACT';bo.object=bpy.data.objects[PREFIX+'CUT_Entrance']
     o['bastion_features']=42;o['clear_mapped_arcs']=33;o['provisional_corner_terraces']=9
     o['accuracy']='Outer shapes follow trace; nine corner/entry deck identifications and rear depths provisional'
-    (ROOT/'bastion_footprints.json').write_text(json.dumps(footprints,indent=2))
+    (ROOT/'data'/'bastion_footprints.json').write_text(json.dumps(footprints,indent=2))
     # Reviewed marker names permit selecting a bastion without duplicating its geometry.
     for feature in footprints:
         p=np.mean(feature['polygon'],axis=0)
@@ -678,11 +678,11 @@ def planar_radius(o):
 def collision_footprints():
     c=empty_collection('81_Scatter_Clearance')
     verts=[];faces=[]
-    exclusions=json.loads((ROOT/'feature_exclusions.json').read_text())
+    exclusions=json.loads((ROOT/'data'/'feature_exclusions.json').read_text())
     polys=[]
     for x,y,r in exclusions:
         polys.append([(x+r*math.cos(k*2*math.pi/24),y+r*math.sin(k*2*math.pi/24)) for k in range(24)])
-    polys += [f['polygon'] for f in json.loads((ROOT/'bastion_footprints.json').read_text())]
+    polys += [f['polygon'] for f in json.loads((ROOT/'data'/'bastion_footprints.json').read_text())]
     for route in SITE['paths']:
         for a,b in zip(route,route[1:]):
             aa,bb=Vector(a),Vector(b);t=(bb-aa).normalized();n=Vector((-t.y,t.x))*1.7

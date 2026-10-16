@@ -1,10 +1,25 @@
 # Sindhudurg: 1:1 procedural reconstruction
 
-Open **Sindhudurg_1to1_Procedural.blend** and choose the **Sindhudurg_1to1** scene.
+The `reconstruction/` folder holds two Blender pipelines. Inputs and generated JSON/NPZ live in `reconstruction/data/`, preview PNGs in `reconstruction/images/`, and the scenes in `blend/`.
+
+- **FortWall generator** (`fort_wall_gn.py`): the current procedural wall, bastion, gate and stair system. See [FORTWALL.md](FORTWALL.md).
+- **1:1 mapped scene** (`build_sindhudurg.py`): the full-site scene described below. `sd_core.py` holds its shared helpers.
+
+Data preparation runs in this order:
+
+1. `prepare_site.py` turns the draft trace into `data/site_data.json` and `images/mapped_plan.png`.
+2. `prepare_terrain.py` writes `data/terrain_samples.npz`.
+3. `prepare_bastions.py` writes `data/bastion_candidates.json`.
+
+`validate_scene.py` and `render_previews.py` write the validation JSON and preview PNGs.
+
+The superseded low-poly `sd_*` pipeline and the October checkpoint .blend files were removed on 2026-10-17. They remain in git history.
+
+Open **blend/Sindhudurg_1to1_Procedural.blend** and choose the **Sindhudurg_1to1** scene.
 The original **Sindhudurg** scene and all 480 original objects are retained.
 
 The fort is modelled in actual ground metres, with east along +X, north along +Y
-and mean sea level at Z=0. The user's satellite-aligned trace in `Draft1.blend`
+and mean sea level at Z=0. The user's satellite-aligned trace in `blend/Draft1.blend`
 was recovered and corrected for Web Mercator's local scale distortion. The
 result encloses **190,112.57 m² (19.01 ha)** with a **2,988.78 m circuit**.
 The mapped rampart envelope is approximately **526 × 759 m**.
@@ -47,11 +62,13 @@ and wall details do not become thousands of Blender objects.
 After editing a plant prototype's geometry, rebuild to recalculate its collision
 bounds; changes to the provided density/seed/spacing controls remain protected.
 
-To rebuild in this project, run `SD2_build_sindhudurg.py` in Blender's Text
-Editor. The script uses the `reconstruction` data/source folder and reuses
-assets in the protected original scene. If relocating the project, update
-the `ROOT` path in the script before rebuilding. `site_data.json` holds the
-metric outline and mapped features; `terrain_samples.npz` holds sampled masks.
+To rebuild, run `reconstruction/build_sindhudurg.py` from Blender's Text
+Editor (the embedded `SD2_build_sindhudurg.py` copy predates the 2026-10-17
+folder move and uses old paths). It reuses assets in the protected original
+scene. If relocating the project, update the hardcoded `ROOT` in
+`build_sindhudurg.py`, `render_previews.py` and `validate_scene.py`.
+`data/site_data.json` holds the metric outline and mapped features;
+`data/terrain_samples.npz` holds sampled masks.
 
 ## Flora and confidence
 
@@ -73,6 +90,6 @@ plans, detailed bastion survey or island botanical inventory was supplied.
 The footprint has not been stretched to force rounded published dimensions.
 
 Sources and build contract: [PLAN.md](PLAN.md). Structural proof and actual
-instance counts: `validation.json`. Pairwise same/cross-category footprint proof:
-`scatter_collision_validation.json`. Preview images: `Sindhudurg_aerial.png`,
-`Sindhudurg_plan.png`, `Sindhudurg_interior.png`. No paid AI generation was used.
+instance counts: `data/validation.json`. Pairwise same/cross-category footprint proof:
+`data/scatter_collision_validation.json`. Preview images: `images/Sindhudurg_aerial.png`,
+`images/Sindhudurg_plan.png`, `images/Sindhudurg_interior.png`. No paid AI generation was used.
