@@ -1,13 +1,14 @@
 # Bugs, fixes and lessons
 
-Every bug found so far, what caused it, and the rule that prevents it. Read this before you change `reconstruction/fort_wall_gn.py`, `web/dist/wall-system.js` or the Blender scenes. Add new entries at the top of the relevant section.
+Every bug found so far, what caused it, and the rule that prevents it. Read this before you change `fortwall/generator.py`, `web/dist/wall-system.js` or the Blender scenes. Add new entries at the top of the relevant section.
 
-## FortWall generator (`reconstruction/fort_wall_gn.py`)
+## FortWall generator (`fortwall/generator.py`)
 
 ### Geometry
 
 | Bug | Cause | Fix and rule |
 |---|---|---|
+| A fort with no bastions grew a 200 m courtyard block (volume 344,666 instead of about 6,000) | A MANIFOLD DIFFERENCE with an empty Mesh 1 (the bastion body and ring) returns Mesh 2, here the courtyard prism. | `boolean()` returns the empty Mesh 1 when it has no faces. Test `check()` on a curve with no parts as well as on the demo. |
 | Corners chamfered by about 3 m | Resample Curve at Resolution 3 cuts a chord across each knot. | The resample point nearest each knot snaps onto it. Never rely on resample spacing for corners. |
 | Crenel wedges and slivers at concave corners (36 bad merlons out of 283) | Crenels were spaced by spine arc length but cut the parapet about 1.46 m off the spine, so at concave corners they bunched up and cut diagonally. | Space crenels along the parapet's own centreline. Corners that turn more than 20° keep one solid merlon. Measure with the merlon-component metric: min OBB side < 0.35 m or area < 0.2 m². |
 | Straight-run merlon slivers (25, then 34 after the corner fix) | **Open.** Not investigated. | Keep the merlon metric in the check loop. |

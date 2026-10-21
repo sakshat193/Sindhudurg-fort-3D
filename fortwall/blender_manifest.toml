@@ -1,0 +1,13 @@
+schema_version = "1.0.0"
+
+id = "fortwall"
+version = "1.0.0"
+name = "FortWall"
+tagline = "Fort walls with bastions, gates and stairs from a Bezier curve"
+maintainer = "sakshat193"
+type = "add-on"
+tags = ["Add Curve", "Geometry Nodes"]
+
+blender_version_min = "5.0.0"
+
+license = ["SPDX:GPL-3.0-or-later"]

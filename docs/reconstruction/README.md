@@ -2,7 +2,7 @@
 
 The `reconstruction/` folder holds two Blender pipelines. Inputs and generated JSON/NPZ live in `reconstruction/data/`, preview PNGs in `reconstruction/images/`, and the scenes in `blend/`.
 
-- **FortWall generator** (`fort_wall_gn.py`): the current procedural wall, bastion, gate and stair system. See [FORTWALL.md](FORTWALL.md).
+- **FortWall generator** (the `fortwall/` Blender extension at the repo root): the current procedural wall, bastion, gate and stair system. See [FORTWALL.md](FORTWALL.md).
 - **1:1 mapped scene** (`build_sindhudurg.py`): the full-site scene described below. `sd_core.py` holds its shared helpers.
 
 Data preparation runs in this order:

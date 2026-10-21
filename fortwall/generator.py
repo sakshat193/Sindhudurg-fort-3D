@@ -1,7 +1,7 @@
 """FortWall: procedural fort wall + bastions + gates as one Geometry Nodes modifier (Blender 5.2).
 
-Run in Blender: exec(open(r'...\\fort_wall_gn.py').read())  -> rebuilds node group 'FortWall',
-creates the demo (Fort_Wall curve, Bastions + Gates collections, materials) only if missing.
+Used by the FortWall add-on (fortwall/__init__.py). Standalone: exec(open(r'...\\fortwall\\generator.py').read())
+-> rebuilds node group 'FortWall', creates the demo (Fort_Wall curve, Bastions + Gates collections, materials) only if missing.
 
 Controls on the 'Fort_Wall' Bezier curve (Edit Mode):
   Alt+S on a control point   crown width there   (point radius x Crown Width)
@@ -27,6 +27,14 @@ Z = (0, 0, 1)
 EPS = 0.005   # boolean clearance: keeps cutter faces off coplanar wall/bastion faces
 BIG = 200.0   # "sky" height for cutters (absolute z for slab/courtyard, above parapet for caps)
 RAIL_T, RAIL_H = 0.4, 0.7   # low inner parapet on the courtyard edge of the walkway: thickness, height
+PARTS = ('Bastions', 'Gates', 'Stairs')  # collection inputs: one empty per part
+PANELS = (  # modifier and sidebar grouping of the inputs
+    ('Wall', ('Height', 'Crown Width', 'Batter', 'Ground', 'Parapet Height', 'Parapet Thickness', 'Resolution', 'Flip Outside')),
+    ('Bastions, Gates, Stairs', ('Bastions', 'Bastion Batter', 'Gates', 'Gate Height', 'Stairs', 'Ramp Run')),
+    ('Merlons', ('Merlon Height', 'Merlon Spacing', 'Merlon Randomness', 'Crenel Width')),
+    ('Bricks', ('Bricks', 'Brick Size', 'Mortar Gap', 'Brick Relief', 'Brick Jitter', 'Seed')),
+    ('Flags & Materials', ('Flag Chance', 'Flagpole Height', 'Material', 'Mortar Material', 'Wood Material', 'Flag Material')),
+)
 
 
 def build_group(name='FortWall'):
@@ -66,12 +74,20 @@ def build_group(name='FortWall'):
         ('Flag Material', 'Material', {}),
     ]
     # keep the interface (socket ids) on re-runs, or existing modifiers reset their values to 0
-    if [i.name for i in g.interface.items_tree] != ['Geometry'] + [s[0] for s in spec]:  # output listed first
+    def inputs(): return {i.name: i for i in g.interface.items_tree if i.item_type == 'SOCKET' and i.in_out == 'INPUT'}
+    if sorted(inputs()) != sorted(s[0] for s in spec):  # sorted: panels reorder items_tree
         g.interface.clear()
         for nm, t, kw in spec:
             s = g.interface.new_socket(name=nm, in_out='INPUT', socket_type='NodeSocket' + t)
             for k, v in kw.items(): setattr(s, k, v)
         g.interface.new_socket(name='Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+    # modifier panels: moving a socket into a panel keeps its id, so existing modifier values survive
+    socks = inputs()
+    for title, names in PANELS:
+        p = next((i for i in g.interface.items_tree if i.item_type == 'PANEL' and i.name == title), None) \
+            or g.interface.new_panel(title, default_closed=title != PANELS[0][0])
+        for nm in names:
+            if socks[nm].parent != p: g.interface.move_to_parent(socks[nm], p, len(p.interface_items))
 
     N, L = g.nodes, g.links
     lay = dict(x=0, k=0, frame=None, gi=None)
@@ -398,7 +414,9 @@ def build_group(name='FortWall'):
     def boolean(op, a, *bs):
         b = n('GeometryNodeMeshBoolean', a, operation=op, solver='MANIFOLD')  # ~100x faster than EXACT, same solid
         for x in bs: L.new(live(x.outputs)[0], b.inputs['Mesh 2'])
-        return b
+        if op != 'DIFFERENCE': return b
+        # an empty Mesh 1 (a fort with no bastions) makes MANIFOLD return Mesh 2, the 200 m courtyard prism: keep it empty
+        return sw(n('GeometryNodeAttributeDomainSize', a, component='MESH').outputs['Face Count'], a, b, 'GEOMETRY')
     def own(geo, v): return n('GeometryNodeStoreNamedAttribute', geo, None, 'own', v, data_type='FLOAT', domain='FACE')
     body, ring, cut, wcut, bcren = (own(x, 1) for x in (body, ring, cut, wcut, bcren))  # face owner for bricks: 1 bastion, else 0 wall (slab cut is flush with the parapet face)
     # (A + B + C) - K = (A - K) + (B - K) + (C - K): cut the parts, then one union over the whole fort
@@ -701,28 +719,71 @@ def demo():
             e.location, e.rotation_euler, e.scale = (x, y, 0), (0, 0, math.radians(a)), (w, 1, 1); scol.objects.link(e)
     ob = bpy.data.objects.get('Fort_Wall')
     if not ob:
-        cu = bpy.data.curves.new('Fort_Wall', 'CURVE'); cu.dimensions = '3D'
-        s = cu.splines.new('BEZIER')
-        pts = [(-40, -30, 0, 1), (35, -35, 0, 1), (50, 10, 0, 1), (5, 40, 3, 1.5), (-45, 20, 0, 1)]  # x y z radius
-        s.bezier_points.add(len(pts) - 1)
-        for p, (x, y, z, r) in zip(s.bezier_points, pts):
-            p.co, p.radius = (x, y, z), r
-            p.handle_left_type = p.handle_right_type = 'VECTOR'
-        s.use_cyclic_u = True
-        ob = bpy.data.objects.new('Fort_Wall', cu); scn.collection.objects.link(ob)
+        ob = new_curve('Fort_Wall', [(-40, -30, 0, 1), (35, -35, 0, 1), (50, 10, 0, 1), (5, 40, 3, 1.5), (-45, 20, 0, 1)])
+        scn.collection.objects.link(ob)
     md = ob.modifiers.get('FortWall')
     if md and (md.node_group != g or mod_input(md, 'Bastions').value is None):
-        ob.modifiers.remove(md); md = None  # interface was rebuilt: start from fresh defaults
+        ob.modifiers.remove(md)  # interface was rebuilt: start from fresh defaults
+    attach(ob, Bastions=col, Gates=gcol, Stairs=scol)
+    return ob
+
+
+def new_curve(name, pts):
+    """Closed 3D Bezier object with sharp (vector) corners; pts = (x, y, z, radius). Not linked to a collection."""
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'
+    s = cu.splines.new('BEZIER')
+    s.bezier_points.add(len(pts) - 1)
+    for p, (x, y, z, r) in zip(s.bezier_points, pts):
+        p.co, p.radius = (x, y, z), r
+        p.handle_left_type = p.handle_right_type = 'VECTOR'
+    s.use_cyclic_u = True
+    return bpy.data.objects.new(name, cu)
+
+
+def fort_modifier(ob):
+    g = bpy.data.node_groups.get('FortWall')
+    return ob and g and next((m for m in ob.modifiers if m.type == 'NODES' and m.node_group == g), None)
+
+
+def attach(ob, **parts):
+    """Make curve object ob a fort: FortWall modifier (node group built if missing), empty part inputs filled from parts
+    (else new '<ob> Bastions' etc. collections under '<ob> Parts'), default materials. Values already set are kept."""
+    g = bpy.data.node_groups.get('FortWall') or build_group()
+    md = fort_modifier(ob)
     if not md:
         md = ob.modifiers.new('FortWall', 'NODES'); md.node_group = g
+    ob.data.dimensions = '3D'  # point Z raises the wall there
+    home = None
+    for k in PARTS:
+        if mod_input(md, k).value is None:
+            c = parts.get(k)
+            if c is None:
+                if home is None:
+                    home = bpy.data.collections.new(f'{ob.name} Parts')
+                    (ob.users_collection[0] if ob.users_collection else bpy.context.scene.collection).children.link(home)
+                c = bpy.data.collections.new(f'{ob.name} {k}'); home.children.link(c)
+            mod_input(md, k).value = c
     M = bpy.data.materials.get
-    for k, v in (('Bastions', col), ('Gates', gcol), ('Stairs', scol),
-                 ('Material', M('FortWall_Brick') or brick_mat()), ('Mortar Material', M('FortWall_Mortar') or mortar_mat()),
-                 ('Wood Material', M('FortWall_Wood') or _mat('FortWall_Wood', (0.10, 0.06, 0.03, 1), (0.28, 0.17, 0.09, 1), False)),
-                 ('Flag Material', M('FortWall_Flag') or _mat('FortWall_Flag', (0.85, 0.28, 0.02, 1), (0.98, 0.45, 0.05, 1), False))):
-        if mod_input(md, k).value is None: mod_input(md, k).value = v  # keep the user's picks
+    for k, v in (('Material', lambda: M('FortWall_Brick') or brick_mat()), ('Mortar Material', lambda: M('FortWall_Mortar') or mortar_mat()),
+                 ('Wood Material', lambda: M('FortWall_Wood') or _mat('FortWall_Wood', (0.10, 0.06, 0.03, 1), (0.28, 0.17, 0.09, 1), False)),
+                 ('Flag Material', lambda: M('FortWall_Flag') or _mat('FortWall_Flag', (0.85, 0.28, 0.02, 1), (0.98, 0.45, 0.05, 1), False))):
+        if mod_input(md, k).value is None: mod_input(md, k).value = v()  # keep the user's picks
     ob.update_tag()
-    return ob
+    return md
+
+
+def add_part(md, kind, loc, yaw=0.0):
+    """New empty in the fort's `kind` collection ('Bastions' / 'Gates' / 'Stairs') at world loc, turned yaw about Z.
+    Bastion: radius = scale, Z over the fort = extra platform height. Gate: half width = scale X. Stair: width = scale X."""
+    name, shape, scale = {'Bastions': ('Bastion', 'CIRCLE', (1, 1, 1)), 'Gates': ('Gate', 'ARROWS', (1.5, 1.5, 1)),
+                          'Stairs': ('Stair', 'SINGLE_ARROW', (1.5, 1, 1))}[kind]
+    if kind == 'Bastions': scale = (max(3.0, 2 * mod_input(md, 'Crown Width').value),) * 3
+    e = bpy.data.objects.new(name, None)
+    e.empty_display_type, e.empty_display_size = shape, 1
+    e.location, e.rotation_euler, e.scale = loc, (0, 0, yaw), scale
+    mod_input(md, kind).value.objects.link(e)
+    md.id_data.update_tag()
+    return e
 
 
 def check(ob=None):
@@ -737,7 +798,7 @@ def check(ob=None):
     bricks = sum(1 for i in dg.object_instances if i.is_instance and i.parent and i.parent.original == ob)
     assert vol > 0, f'normals point inward (signed volume {vol:.0f})'
     assert open_edges == 0, f'{open_edges} non-manifold edges'
-    assert bricks > 0 or not mod_input(ob.modifiers['FortWall'], 'Bricks').value, 'no bricks'
+    assert bricks > 0 or not mod_input(fort_modifier(ob), 'Bricks').value, 'no bricks'
     return dict(volume=round(vol), open_edges=open_edges, bricks=bricks, secs=round(secs, 2))
 
 
