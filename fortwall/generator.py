@@ -20,8 +20,11 @@ Core solid = (wall - bastion cylinders - crenels) + bastion bodies + (rings - cu
 Brick Relief, Brick Jitter, Seed; the core shows between them as mortar (Mortar Material).
 Outside side is detected from the curve winding; tick Flip Outside if it picks the wrong one.
 """
-import bpy, math
+import bpy, hashlib, inspect, math
+from pathlib import Path
 
+_file = globals().get('__file__')  # unset when exec()'d
+ASSET = Path(_file).with_name('fortwall_nodes.blend') if _file else None  # prebuilt group, written by bake()
 TAU = 2 * math.pi
 Z = (0, 0, 1)
 EPS = 0.005   # boolean clearance: keeps cutter faces off coplanar wall/bastion faces
@@ -224,7 +227,10 @@ def build_group(name='FortWall'):
 
     def nbs(v, at_, dt='FLOAT'):  # value at the bastion nearest at_
         return n('GeometryNodeSampleIndex', bp, v, n('GeometryNodeSampleNearest', bp, at_, domain='POINT'), data_type=dt, domain='POINT')
-    dB = m('SUBTRACT', vm('DISTANCE', pos, nbs(pos, pos, 'FLOAT_VECTOR')), nbs(R, pos))  # spine point to the nearest bastion circle
+    nb = n('GeometryNodeAttributeDomainSize', bp, component='POINTCLOUD').outputs['Point Count']
+    def dcirc(at_):  # at_ to the nearest bastion circle; with none, far away (sampling no points gives 0: a circle at the origin)
+        return sw(cmp(nb, 0, 'GREATER_THAN'), 1e6, m('SUBTRACT', vm('DISTANCE', at_, nbs(pos, at_, 'FLOAT_VECTOR')), nbs(R, at_)), 'FLOAT')
+    dB = dcirc(pos)  # spine point to the nearest bastion circle
     # level with the platform wherever the section (half-width HW) can touch the circle, one sample further (the crown is
     # linear between samples): no step where the circle crosses the walkway; then up or down to the crown over Ramp Run
     ramp = n('ShaderNodeClamp', m('SUBTRACT', 1, m('DIVIDE', m('SUBTRACT', dB, m('ADD', HW, GI('Resolution'))), GI('Ramp Run'))), 0, 1)
@@ -284,7 +290,7 @@ def build_group(name='FortWall'):
     # parapets never cut each other's merlons; the overlap is one solid at one height (walkway level with the platform there)
     flat = vm('MULTIPLY', pos, (1, 1, 0))
     clear = m('MULTIPLY', MS, 0.75)
-    off_bastion = cmp(m('SUBTRACT', vm('DISTANCE', flat, nbs(pos, flat, 'FLOAT_VECTOR')), nbs(R, flat)), clear, 'GREATER_THAN')
+    off_bastion = cmp(dcirc(flat), clear, 'GREATER_THAN')
     off_wall = cmp(m('SUBTRACT', n('GeometryNodeProximity', proxy, Sample_Position=flat, target_element='EDGES').outputs['Distance'],
                      n('GeometryNodeSampleIndex', proxy, HW, n('GeometryNodeSampleNearest', proxy, flat, domain='POINT'),
                        data_type='FLOAT', domain='POINT')), clear, 'GREATER_THAN')
@@ -614,14 +620,26 @@ def build_group(name='FortWall'):
     pts = n('GeometryNodeDeleteGeometry', pts, sliver, domain='POINT')
 
     stage('10 Bricks: rounded blocks, jittered, per-brick tint; the core shows between them as mortar')
-    J, seed, dep = GI('Brick Jitter'), GI('Seed'), m('MULTIPLY', S, 0.5)
+    J, seed = GI('Brick Jitter'), GI('Seed')
+    # half a brick deep, but no deeper than the thinnest bricked feature (stair parapet 0.3, Parapet Thickness), or big bricks poke through
+    dep = m('MINIMUM', m('MULTIPLY', S, 0.5), m('ADD', rel, m('MULTIPLY', m('MINIMUM', GI('Parapet Thickness'), 0.3), 0.8)))
     def rnd(dt, lo, hi, s): return n('FunctionNodeRandomValue', Min=lo, Max=hi, Seed=m('ADD', seed, s), data_type=dt)
     off = m('ADD', m('SUBTRACT', rel, m('MULTIPLY', dep, 0.5)), m('MULTIPLY', m('MULTIPLY', J, rel), rnd('FLOAT', -0.6, 0.6, 1)))
     P = vm('ADD', vm('ADD', pos, vm('SCALE', T_, Scale=mid.outputs['X'])),
            vm('ADD', vm('SCALE', U_, Scale=mid.outputs['Y']), vm('SCALE', N_, Scale=off)))
     pts = store(n('GeometryNodeSetPosition', pts, Position=P), 'tint', rnd('FLOAT', 0, 1, 2), 'FLOAT')
-    tilt = n('FunctionNodeEulerToRotation', rnd('FLOAT_VECTOR', vm('SCALE', (-0.03, -0.03, -0.05), Scale=J),
-                                                vm('SCALE', (0.03, 0.03, 0.05), Scale=J), 3))
+    # every back corner must lie in the core: the T/U trims can't see a concave notch, so a brick wider than its face
+    # (the platform slab at a courtyard corner, big courses over a stair) would hang in the air there; drop it instead
+    back = vm('SUBTRACT', pos, vm('SCALE', N_, Scale=m('ADD', off, m('MAXIMUM', m('SUBTRACT', dep, rel), 0.02))))
+    inside = []
+    for a, b in ((-0.4, -0.4), (-0.4, 0.4), (0.4, -0.4), (0.4, 0.4)):
+        c = vm('ADD', back, vm('ADD', vm('SCALE', T_, Scale=m('MULTIPLY', sz.outputs['X'], a)), vm('SCALE', U_, Scale=m('MULTIPLY', sz.outputs['Y'], b))))
+        rc = n('GeometryNodeRaycast', Target_Geometry=solid, Source_Position=c, Ray_Direction=neg(N_), Ray_Length=BIG)
+        inside.append(AND(rc.outputs['Is Hit'], cmp(vm('DOT_PRODUCT', rc.outputs['Hit Normal'], N_), 0, 'LESS_THAN')))  # leaves the core
+    pts = n('GeometryNodeDeleteGeometry', pts, n('FunctionNodeBooleanMath', AND(*inside), operation='NOT'), domain='POINT')
+    Jt = m('MULTIPLY', J, m('MINIMUM', m('DIVIDE', 0.4, S), 1))  # tilt angle shrinks past the default size: a brick's rim moves the same few mm
+    tilt = n('FunctionNodeEulerToRotation', rnd('FLOAT_VECTOR', vm('SCALE', (-0.03, -0.03, -0.05), Scale=Jt),
+                                                vm('SCALE', (0.03, 0.03, 0.05), Scale=Jt), 3))
     rot = n('FunctionNodeRotateRotation', n('FunctionNodeAxesToRotation', N_, T_, primary_axis='Z', secondary_axis='X'),
             tilt, rotation_space='LOCAL')
     cube = n('GeometryNodeSubdivisionSurface', n('GeometryNodeMeshCube', Size=(1, 1, 1)), Level=1, Edge_Crease=0.6)
@@ -660,8 +678,58 @@ def build_group(name='FortWall'):
     cloth = n('GeometryNodeSetMaterial', n('GeometryNodeMeshCube'), Material=GI('Flag Material'))
     flags = n('GeometryNodeInstanceOnPoints', n('GeometryNodeSetPosition', fl, Position=vm('ADD', attr('rb'), (0.75, 0, -0.5))),
               Instance=cloth, Scale=(1.4, 0.03, 0.9))  # one wind direction for all
-    props = n('GeometryNodeRealizeInstances', join(rails, rungs, rod(fl, 0.07), flags))
+    props = store(n('GeometryNodeRealizeInstances', join(rails, rungs, rod(fl, 0.07), flags)), 'prop', True, 'BOOLEAN')  # check() skips these
     put(n('NodeGroupOutput').inputs[0], join(geo, props))
+    g['fortwall_fp'] = FINGERPRINT
+    return g
+
+
+def _fingerprint():  # build_group's source + the constants it reads: changes whenever the graph would
+    try: src = inspect.getsource(build_group)
+    except (OSError, TypeError): return None  # exec()'d without a file: can't tell, so groups are trusted as they are
+    return hashlib.sha256((src + repr((EPS, BIG, RAIL_T, RAIL_H, PARTS, PANELS))).encode()).hexdigest()[:16]
+
+
+FINGERPRINT = _fingerprint()
+
+
+def _inputs(g): return [i for i in g.interface.items_tree if i.item_type == 'SOCKET' and i.in_out == 'INPUT' and i.name != 'Geometry']
+
+
+def ensure_group(name='FortWall'):
+    """The FortWall group, current with this generator. Reused if its fingerprint matches, else appended from the bundled
+    asset (under a second), else built from source (minutes). An outdated group in the file is replaced: every modifier on
+    it switches to the new one with its values kept by name (same socket ids, so drivers and keys still resolve)."""
+    old = bpy.data.node_groups.get(name)
+    if old and (FINGERPRINT is None or old.get('fortwall_fp') == FINGERPRINT): return old
+    new = None
+    if ASSET and ASSET.exists():
+        with bpy.data.libraries.load(str(ASSET), link=False) as (src, dst): dst.node_groups = [name]
+        new = dst.node_groups[0]
+        for lib in [l for l in bpy.data.libraries if Path(bpy.path.abspath(l.filepath)) == ASSET]:
+            if not any(i.library == lib for i in bpy.data.node_groups): bpy.data.libraries.remove(lib)  # append leaves it empty
+        ids = {i.name: i.identifier for i in _inputs(new)} if new else {}
+        if new and (new.get('fortwall_fp') != FINGERPRINT or (old and any(ids.get(i.name, i.identifier) != i.identifier for i in _inputs(old)))):
+            bpy.data.node_groups.remove(new); new = None  # asset not baked from this source, or ids moved: build in place
+    if new is None: return build_group(name)  # in place: socket ids and modifier values kept
+    new.use_fake_user = False
+    if old:
+        mods = [md for o in bpy.data.objects for md in o.modifiers if md.type == 'NODES' and md.node_group == old]
+        vals = [{i.name: getattr(md.properties.inputs, i.identifier).value for i in _inputs(old)} for md in mods]
+        for md in mods: md.node_group = new  # same ids, so Blender keeps the values; it also adds inputs the old group lacked
+        old.user_remap(new)  # any other user (a group node in another tree)
+        for md, v in zip(mods, vals):
+            for i in _inputs(new):
+                if i.name in v: getattr(md.properties.inputs, i.identifier).value = v[i.name]
+        bpy.data.node_groups.remove(old)
+    new.name = name
+    return new
+
+
+def bake():
+    """Developer: build the group from source and save it as the bundled asset ensure_group() appends. Run headless."""
+    g = build_group()
+    bpy.data.libraries.write(str(ASSET), {g}, fake_user=True, compress=True)
     return g
 
 
@@ -748,7 +816,7 @@ def fort_modifier(ob):
 def attach(ob, **parts):
     """Make curve object ob a fort: FortWall modifier (node group built if missing), empty part inputs filled from parts
     (else new '<ob> Bastions' etc. collections under '<ob> Parts'), default materials. Values already set are kept."""
-    g = bpy.data.node_groups.get('FortWall') or build_group()
+    g = ensure_group()
     md = fort_modifier(ob)
     if not md:
         md = ob.modifiers.new('FortWall', 'NODES'); md.node_group = g
@@ -787,19 +855,35 @@ def add_part(md, kind, loc, yaw=0.0):
 
 
 def check(ob=None):
-    """Core is one closed outward solid; every bastion parapet reaches its circle; bricks were laid."""
+    """The core (ladders and flags left out) is one closed, outward-facing solid, and bricks were laid if Bricks is on."""
     import bmesh, time
     ob = ob or bpy.data.objects['Fort_Wall']
     t0 = time.perf_counter(); dg = bpy.context.evaluated_depsgraph_get(); ob.update_tag(); dg.update()
     ev = ob.evaluated_get(dg); secs = time.perf_counter() - t0
+    gs = ev.evaluated_geometry(); pc = gs.instances_pointcloud()  # one point per brick (gs must outlive pc)
+    bricks = len(pc.points) if pc else 0  # not dg.object_instances: that also holds the object's own mesh
     me = ev.to_mesh(); bm = bmesh.new(); bm.from_mesh(me)
+    a = me.attributes.get('prop')
+    if a:
+        prop = [False] * len(me.vertices); a.data.foreach_get('value', prop)
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if prop[v.index]], context='VERTS')
     vol, open_edges = bm.calc_volume(signed=True), sum(not e.is_manifold for e in bm.edges)
+    seen, islands = set(), 0
+    for v in bm.verts:
+        if v in seen: continue
+        seen.add(v); todo = [v]; faces = set()
+        while todo:
+            u = todo.pop(); faces.update(u.link_faces)
+            for e in u.link_edges:
+                w = e.other_vert(u)
+                if w not in seen: seen.add(w); todo.append(w)
+        islands += sum(f.calc_area() for f in faces) > 1e-3  # booleans can leave zero-area slivers: not pieces
     bm.free(); ev.to_mesh_clear()
-    bricks = sum(1 for i in dg.object_instances if i.is_instance and i.parent and i.parent.original == ob)
+    assert islands == 1, f'core is {islands} separate pieces, not one'
     assert vol > 0, f'normals point inward (signed volume {vol:.0f})'
     assert open_edges == 0, f'{open_edges} non-manifold edges'
     assert bricks > 0 or not mod_input(fort_modifier(ob), 'Bricks').value, 'no bricks'
-    return dict(volume=round(vol), open_edges=open_edges, bricks=bricks, secs=round(secs, 2))
+    return dict(volume=round(vol), open_edges=open_edges, islands=islands, bricks=bricks, secs=round(secs, 2))
 
 
 if __name__ == '__main__':

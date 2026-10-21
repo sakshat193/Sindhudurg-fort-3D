@@ -106,11 +106,15 @@ class FORTWALL_OT_add_part(bpy.types.Operator):
 
 
 class FORTWALL_OT_rebuild(bpy.types.Operator):
-    """Rebuild the FortWall node group from the add-on (keeps every modifier value). A big fort can freeze Blender for minutes"""
-    bl_idname, bl_label, bl_options = 'fortwall.rebuild', 'Rebuild Nodes', {'REGISTER', 'UNDO'}
+    """Bring this file's FortWall node group up to the installed add-on's version (keeps every modifier value)"""
+    bl_idname, bl_label, bl_options = 'fortwall.rebuild', 'Update Nodes', {'REGISTER', 'UNDO'}
 
     def execute(self, ctx):
-        gen.build_group(); return {'FINISHED'}
+        g = bpy.data.node_groups.get('FortWall')
+        current = g and g.get('fortwall_fp') == gen.FINGERPRINT
+        gen.ensure_group()
+        self.report({'INFO'}, 'Nodes already current' if current else 'Nodes updated')
+        return {'FINISHED'}
 
 
 class FORTWALL_OT_check(bpy.types.Operator):
@@ -122,7 +126,8 @@ class FORTWALL_OT_check(bpy.types.Operator):
 
     def execute(self, ctx):
         try: self.report({'INFO'}, str(gen.check(find_fort(ctx)[0])))
-        except AssertionError as e: self.report({'ERROR'}, str(e))
+        except AssertionError as e:
+            self.report({'ERROR'}, str(e)); return {'CANCELLED'}
         return {'FINISHED'}
 
 
@@ -182,7 +187,10 @@ class VIEW3D_PT_fortwall(bpy.types.Panel):
                     body.prop(getattr(md.properties.inputs, s.identifier), 'value', text=s.name)
         row = L.row(align=True)
         row.operator('fortwall.check', icon='CHECKMARK')
-        row.operator('fortwall.rebuild', icon='FILE_REFRESH')
+        stale = gen.FINGERPRINT and md.node_group.get('fortwall_fp') != gen.FINGERPRINT
+        row.alert = bool(stale)
+        row.operator('fortwall.rebuild', icon='ERROR' if stale else 'FILE_REFRESH')
+        if stale: L.label(text='Nodes are older than the add-on', icon='INFO')
 
 
 def menu_add(self, ctx):

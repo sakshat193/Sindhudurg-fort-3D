@@ -8,6 +8,9 @@ Every bug found so far, what caused it, and the rule that prevents it. Read this
 
 | Bug | Cause | Fix and rule |
 |---|---|---|
+| Bricks poke up to 0.11 m out of the east wall's inner face where a stair turns the SE courtyard corner (Brick Size ≤ 2 only; invisible in renders) | **Open.** Rays from there cross the core in an impossible order (exit, enter, exit, exit), so the core probably self-intersects where the stair's winders fold at the concave corner. A Manifold union can't clean up a self-intersecting input. | Check that the stair flight mesh is free of self-intersections at concave corners before chasing these bricks. |
+| Big bricks poked through the rail, stair parapets and parapet (69% of bricks at Brick Size 10), and the bastion platform slab hung up to 1.8 m over the courtyard notch at Brick Size 5 and above | Brick depth was half the brick size, deeper than those 0.3–0.4 m features, and tilt moved a big brick's rim further. The T/U trims keep a brick inside its face's straight edges but can't see a concave notch. | Depth is capped by the thinnest bricked feature, and tilt shrinks past the default size. Every brick also casts a ray from each of its four back corners into the core and is dropped if a corner is outside. Sweep Brick Size 0.1–25 after brick changes. |
+| A fort with no bastions dropped its crown to zero near local (0, 0) | With an empty bastion collection, the nearest-bastion distance was 0 at the origin, so the ramp pulled the crown to the sampled height 0. | With no bastion points, the distance is huge. Test with a control point exactly at the origin, and with an empty and an unset collection. |
 | A fort with no bastions grew a 200 m courtyard block (volume 344,666 instead of about 6,000) | A MANIFOLD DIFFERENCE with an empty Mesh 1 (the bastion body and ring) returns Mesh 2, here the courtyard prism. | `boolean()` returns the empty Mesh 1 when it has no faces. Test `check()` on a curve with no parts as well as on the demo. |
 | Corners chamfered by about 3 m | Resample Curve at Resolution 3 cuts a chord across each knot. | The resample point nearest each knot snaps onto it. Never rely on resample spacing for corners. |
 | Crenel wedges and slivers at concave corners (36 bad merlons out of 283) | Crenels were spaced by spine arc length but cut the parapet about 1.46 m off the spine, so at concave corners they bunched up and cut diagonally. | Space crenels along the parapet's own centreline. Corners that turn more than 20° keep one solid merlon. Measure with the merlon-component metric: min OBB side < 0.35 m or area < 0.2 m². |
@@ -34,8 +37,11 @@ Every bug found so far, what caused it, and the rule that prevents it. Read this
 
 | Bug | Cause | Fix and rule |
 |---|---|---|
+| Check Solid passed two separate walls, and a cube with no bricks | Positive total volume and manifold edges don't prove one piece. `dg.object_instances` always holds the object's own mesh, so "bricks" was never 0. | `check()` drops ladder and flag geometry (`prop`), requires one island, and counts the instance point cloud. Zero-area boolean slivers don't count as islands. The operator returns CANCELLED on failure. |
+| Saved files kept an old, buggy FortWall graph after the add-on was updated | `attach()` reused any group named FortWall. | Groups carry `fortwall_fp`, a fingerprint of `build_group`'s source. `ensure_group()` replaces a stale group and keeps every value. |
+| First fort froze Blender for about 4 minutes | Python built 2,646 nodes on first use. | Ship the prebuilt group (`fortwall_nodes.blend`, appended in about 0.15 s). Re-bake after every `build_group` edit. An append leaves an empty Library datablock behind; `ensure_group()` removes it. |
 | Every modifier value reset to 0 or None after a rebuild | Rebuilding the interface gave the sockets new IDs. `items_tree` lists the output Geometry first, so the "names match" test always failed. | Compare against `['Geometry'] + names`. **Never add, remove or reorder interface inputs.** Append new inputs at the end only. |
-| User modifier values lost (Seed, merlons, Ramp Run, Resolution) | I swapped `md.node_group` to a backup group for a baseline. | **Never reassign `md.node_group`.** Snapshot the inputs before any experiment, and tell the user if anything was lost. |
+| User modifier values lost (Seed, merlons, Ramp Run, Resolution) | I swapped `md.node_group` to a backup group for a baseline. | **Never reassign `md.node_group` by hand;** `ensure_group()` swaps groups and restores values by name. Snapshot the inputs before any experiment, and tell the user if anything was lost. |
 | `md[identifier] = x` raises TypeError | Blender 5.x moved modifier inputs to `md.properties.inputs.Socket_N.value`. | Use `mod_input(md, name)`. Skip the Geometry socket, which has no `.value`. |
 | Wrong node input names (`Source_Position`) | The API name differs from the UI label. | Proximity uses `Sample_Position`. The `n()` helper asserts every input name. |
 | Wrong argument order | Helper signatures differ. | `m(op, a, b)` takes the op first; `sw(c, false_val, true_val, typ)`. |
@@ -77,7 +83,8 @@ Every bug found so far, what caused it, and the rule that prevents it. Read this
 | Euler view rotations framed the wrong side | Use a look-at with `to_track_quat('Z', 'Y')`, and set `view_distance` directly. |
 | Evaluated curve objects have no `vertices` or `polygons` | Use `to_mesh()` / `to_mesh_clear()`, or `check()`. |
 | bmesh index access fails | Call `ensure_lookup_table()`, or use `me.vertices`. |
-| Probing `instances_pointcloud()` gave meaningless positions | Don't use it. |
+| Probing `instances_pointcloud()` gave meaningless positions, or a ReferenceError | Keep the `evaluated_geometry()` result alive while you use its point cloud. Count bricks with it; read brick transforms from `dg.object_instances`. |
+| A brick-poke test flagged sound bricks at concave edges | The nearest face's normal sign is wrong near concave edges. Confirm a poke with ray parity, as a majority vote over six skewed rays. |
 | A Bash heredoc containing `'''` fails | Write the patch to a .py file and run it. |
 | A temporary probe node was left in the group | Remove probe nodes and groups after use. |
 | Too-close, perspective or selection-cluttered screenshots | Deselect all, use ortho, and hide the selection outline. Never make visual claims without viewing the screenshot. |

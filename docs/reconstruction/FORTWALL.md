@@ -27,7 +27,8 @@ Pick one:
    - Each fort gets its own `<fort> Bastions/Gates/Stairs` collections under `<fort> Parts`.
 4. **Edit a part.** Select the empty. The sidebar shows its meaning: radius and platform height for a bastion, half width and height for a gate, width and direction for a stair.
 5. **Tune the wall.** The sidebar and the modifier group every input under Wall; Bastions, Gates, Stairs; Merlons; Bricks; and Flags & Materials. **Bricks** turns the brick layer on or off. Leave it off while drafting, because it is the slow part.
-6. **Check Solid** confirms the fort is one closed, outward-facing solid. **Rebuild Nodes** rebuilds the node group from the add-on. All modifier values are kept, but the first compile of a big fort can freeze Blender for minutes.
+6. **Check Solid** confirms the core (ladders and flags left out) is one closed, outward-facing piece and, with Bricks on, that bricks were laid. On failure it reports the reason as an error.
+7. **Update Nodes** brings a file's FortWall group up to the installed add-on's version, keeping every modifier value. The button turns red when the file's group is older. The add-on ships the group prebuilt (`fortwall_nodes.blend`), so adding a fort or updating takes well under a second.
 
 ## Scripting
 
@@ -45,11 +46,11 @@ This rebuilds the node group. It creates the demo objects only if they are missi
 ns = {}
 exec(open(path).read().split("if __name__")[0], ns)
 ns['build_group']()   # rebuild the node group in place
-ns['check']()         # {'volume', 'open_edges', 'bricks', 'secs'}; asserts a closed outward solid
+ns['check']()         # {'volume', 'open_edges', 'islands', 'bricks', 'secs'}; raises if the core isn't one closed outward piece
 ns['mod_input'](md, 'Height').value   # read or write a modifier input (Blender 5.x)
 ```
 
-The first rebuild of a large scene can freeze Blender for several minutes while it compiles. Wait for it; don't kill Blender, because an unsaved scene would be lost.
+Building from source takes about 2 minutes (longer in a big scene) and freezes Blender meanwhile. Wait for it; don't kill Blender, because an unsaved scene would be lost. With the add-on installed, `generator.ensure_group()` appends the prebuilt group instead.
 
 ## Controls
 
@@ -66,7 +67,7 @@ Main modifier inputs:
 - **Size:** Height, Crown Width, Batter, Ground, Parapet Height/Thickness.
 - **Detail:** Resolution (resample step in metres), Bastion Batter, Ramp Run.
 - **Merlons:** Merlon Height/Spacing/Randomness and Crenel Width. A Merlon Height of 0 means no merlons.
-- **Bricks:** Bricks, Brick Size, Mortar Gap, Brick Relief, Brick Jitter, Seed.
+- **Bricks:** Bricks, Brick Size, Mortar Gap, Brick Relief, Brick Jitter, Seed. Any Brick Size works: depth stays within the thinnest bricked feature, tilt shrinks as bricks grow, and a brick whose back would hang in the air (over a courtyard notch, say) is left out. Faces shorter than about a brick stay bare.
 - **Extras:** Flag Chance, Flagpole Height, Flip Outside (use it if the outside is detected on the wrong side), and the materials.
 
 ## Geometry rules
@@ -84,9 +85,15 @@ Main modifier inputs:
 
 ## Editing the generator
 
-- **Never reassign `md.node_group` or add, remove or reorder interface inputs.** The socket IDs change, and every modifier value on existing objects resets.
-- Keep the interface list in `build_group` stable. To add an input, append it at the end and expect to re-enter its value. The modifier panels come from `PANELS`. Moving a socket between panels keeps its ID, so regrouping is safe.
-- After any change, run `check()`. It must return `open_edges == 0` and a positive volume.
+- **Re-bake after every edit to `build_group` or the constants it reads**, even a comment. The group carries a fingerprint of that source; until `fortwall_nodes.blend` matches it, the add-on builds from source on first use (minutes). Bake headless, about 2 minutes:
+
+  ```bat
+  blender -b --factory-startup --python-expr "import sys; sys.path.insert(0, r'B:\Blender\Blender_Fort_Reconstruction'); from fortwall import generator; generator.bake()"
+  ```
+
+- **Don't add, remove or reorder interface inputs.** The socket IDs change. `ensure_group()` restores values by name when it swaps groups, but drivers and keyframes on the old IDs break. To add an input, append it at the end. The modifier panels come from `PANELS`. Moving a socket between panels keeps its ID, so regrouping is safe.
+- **Never reassign `md.node_group` by hand.** `ensure_group()` does it and restores the values.
+- After any change, run `check()`, and try a curve with no parts as well as the demo.
 
 ## Sindhudurg trace
 
