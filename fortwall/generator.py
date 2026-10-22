@@ -150,19 +150,22 @@ def build_group(name='FortWall'):
         tot = n('GeometryNodeAccumulateField', v, n('GeometryNodeInputMeshIsland'), data_type='FLOAT', domain='FACE').outputs['Total']
         return n('GeometryNodeFlipFaces', geo, cmp(tot, 0, 'LESS_THAN'))
 
-    def unfold(geo, name, h, base=None):
+    def unfold(geo, name, h, face=None):
         """Offset point `name` (meant to sit h from the base polyline) that lands closer than h has
-        overshot a corner (swallowtail fold): snap it to the last valid point before it along the spline."""
+        overshot a corner (swallowtail fold): snap it to the last valid point before it along the spline.
+        The base polyline is geo itself, or the mesh `face`; then a point snaps only within its own spline."""
         pm = n('GeometryNodeCurveToMesh', geo)
-        if base: pm = n('GeometryNodeSetPosition', pm, Position=attr(base))
         X = attr(name)
-        dist = n('GeometryNodeProximity', pm, Sample_Position=X, target_element='EDGES').outputs['Distance']
+        dist = n('GeometryNodeProximity', pm if face is None else face, Sample_Position=X, target_element='EDGES').outputs['Distance']
         ok = cmp(dist, m('SUBTRACT', h, 1e-3), 'GREATER_THAN')
         pts = n('GeometryNodeMeshToPoints', pm, ok, X)  # valid points, spline order kept
         acc = n('GeometryNodeAccumulateField', ok, data_type='INT', domain='POINT')
         k = n('FunctionNodeIntegerMath', n('FunctionNodeIntegerMath', acc.outputs['Trailing'], 1, operation='SUBTRACT'),
               acc.outputs['Total'], operation='FLOORED_MODULO')  # wraps to the last one on a cyclic seam
         snap = n('GeometryNodeSampleIndex', pts, pos, k, data_type='FLOAT_VECTOR', domain='POINT')
+        if face is not None:  # nothing valid yet on this spline: keep the point, not the previous spline's last
+            seen = n('GeometryNodeAccumulateField', ok, n('GeometryNodeCurveOfPoint'), data_type='INT', domain='POINT')
+            snap = sw(cmp(seen.outputs['Trailing'], 0.5, 'GREATER_THAN'), X, snap, 'VECTOR')
         return store(geo, name, sw(ok, snap, X, 'VECTOR'))
 
     stage('1 Spine: resample, crown height = Ground + Height + point Z, flatten')
@@ -344,6 +347,7 @@ def build_group(name='FortWall'):
                      m('MULTIPLY', GI('Resolution'), GI('Resolution'))))  # blur passes: each adds ~2/3 Resolution^2 of variance
     def blur(v): return n('GeometryNodeBlurAttribute', v, BK, data_type='FLOAT_VECTOR')
     icv = n('GeometryNodeSetPosition', sp, Position=attr('inner'))  # courtyard face foot, exactly as swept ('inner', 'mdir' kept)
+    ifm = n('GeometryNodeCurveToMesh', icv)  # the face foot itself, for unfolding the flights' side lines
     icv = n('GeometryNodeSetPosition', icv, Position=blur(pos))
     icv = store(store(icv, 'aq', n('ShaderNodeCombineXYZ', n('GeometryNodeSplineParameter').outputs['Length'],
                                    n('GeometryNodeSplineLength').outputs['Length'], n('GeometryNodeCurveOfPoint').outputs['Curve Index'])),
@@ -363,10 +367,12 @@ def build_group(name='FortWall'):
     fl0 = fl = n('GeometryNodeRealizeInstances', n('GeometryNodeInstanceOnPoints', sq, Instance=n('GeometryNodeCurvePrimitiveLine')))
     fl = n('GeometryNodeResampleCurve', fl, Mode='Count', Count=m('MULTIPLY', NS, 2))  # two stations per step
     fl = store(fl, 'ri', n('GeometryNodeSplineParameter').outputs['Index'], 'FLOAT')
-    fm = n('GeometryNodeCurveToMesh', fl, n('GeometryNodeCurvePrimitiveCircle', Resolution=4), Fill_Caps=True)
+    prof = n('GeometryNodeCurvePrimitiveCircle', Resolution=4)
     r_ = attr('ri', 'FLOAT'); kk = m('FLOOR', m('DIVIDE', r_, 2))
-    tS = sw(cmp(m('SUBTRACT', r_, m('MULTIPLY', kk, 2)), 0.5, 'GREATER_THAN'),  # station: even = riser foot (leans back 1 cm), odd = tread end
+    odd = cmp(m('SUBTRACT', r_, m('MULTIPLY', kk, 2)), 0.5, 'GREATER_THAN')
+    tS = sw(odd,  # station: even = riser foot (leans back 1 cm), odd = tread end
             m('ADD', m('MULTIPLY', kk, GO), m('MULTIPLY', m('MINIMUM', kk, 1), 0.01)), m('MULTIPLY', m('ADD', kk, 1), GO), 'FLOAT')
+    tD = m('MULTIPLY', kk, GO)  # a riser foot takes its tread end's line: risers stay planar and 1 cm deep round a bend
     zS = m('MULTIPLY', m('ADD', kk, 1), m('DIVIDE', SH, NS))  # tread height over the base
     jj = n('FunctionNodeIntegerMath', idx, 4, operation='MODULO')  # profile: 0 wall/low, 1 open/low, 2 open/high, 3 wall/high
     ss, W, B = n('ShaderNodeSeparateXYZ', attr('ss')), vm('LENGTH', attr('sx')), m('SUBTRACT', G0, 0.01)
@@ -374,19 +380,30 @@ def build_group(name='FortWall'):
     def at_s(v, t):  # value on the blurred face line, t along the flight
         s_ = m('FLOORED_MODULO', m('ADD', ss.outputs['X'], m('MULTIPLY', ss.outputs['Y'], t)), ss.outputs['Z'])
         return n('GeometryNodeSampleCurve', icv, v, s_, attr('sci', 'INT'), mode='LENGTH', data_type='FLOAT_VECTOR')
-    def face(t, w):  # point w into the court off the true face foot (miter, as swept), t along the flight; + the mdir sample
-        md = at_s(attr('mdir'), t)
-        return vm('SUBTRACT', at_s(attr('inner'), t).outputs['Value'], vm('SCALE', md.outputs['Value'], Scale=w)), md
-    def flight(w0, w1, zlo, zhi, t):  # every station sampled on the face line: treads and sides stay planar as the flight bends
+    def face(t, w, td=None):  # point w into the court off the true face foot (miter, as swept), t along the flight; + the mdir sample
+        if td is None:
+            md, p = at_s(attr('mdir'), t), at_s(attr('inner'), t).outputs['Value']
+        else:  # td's mdir keeps the line parallel to td's; where the foot sticks on a corner it juts into the court (a winder fan),
+            # the line moves on by the blurred line's own step instead, so the riser never stands vertical
+            md, p, p0 = at_s(attr('mdir'), td), at_s(attr('inner'), t).outputs['Value'], at_s(attr('inner'), td).outputs['Value']
+            stuck = cmp(vm('DISTANCE', p, p0), m('MULTIPLY', m('SUBTRACT', t, td), 0.1), 'LESS_THAN')  # a few mm of run still unions cleanly
+            p = sw(stuck, p, vm('ADD', p0, vm('SUBTRACT', at_s(pos, t).outputs['Value'], at_s(pos, td).outputs['Value'])), 'VECTOR')
+        return vm('SUBTRACT', p, vm('SCALE', md.outputs['Value'], Scale=w)), md
+    def flight(w0, w1, zlo, zhi, t, td=None):  # every station sampled on the face line: treads and sides stay planar as the flight bends
+        c, td = fl, td and sw(odd, td, t, 'FLOAT')  # tread ends keep their own line (the top one runs past the flight end)
+        for nm, w in (('fw', w0), ('fo', w1)):  # a side that would fold back round a corner waits at its last good station (a newel)
+            c = unfold(store(c, nm, face(t, w, td)[0]), nm, m('ABSOLUTE', w), ifm)
+        c = n('GeometryNodeCurveToMesh', c, prof, Fill_Caps=True)
         op = cmp(m('ABSOLUTE', m('SUBTRACT', jj, 1.5)), 1, 'LESS_THAN')
-        return outward(n('GeometryNodeSetPosition', fm, Position=v3(face(t, sw(op, w0, w1, 'FLOAT'))[0],
-                                                                    sw(cmp(jj, 1.5, 'GREATER_THAN'), zlo, zhi, 'FLOAT'))))
+        return outward(n('GeometryNodeSetPosition', c, Position=v3(sw(op, attr('fw'), attr('fo'), 'VECTOR'),
+                                                                   sw(cmp(jj, 1.5, 'GREATER_THAN'), zlo, zhi, 'FLOAT'))))
     PH, top = 0.9, m('ADD', B, zS)  # parapet over the treads; parts overlap by a few cm (no coplanar faces)
     def te(e): return m('ADD', tS, m('MULTIPLY', ends, e))
     E = m('MULTIPLY', NS, GO)  # run
-    steps = (flight(-0.15, m('SUBTRACT', W, 0.15), B, top, tS),                                        # body, into the wall (chords at corners)
-             flight(m('SUBTRACT', W, 0.3), W, m('SUBTRACT', B, 0.01), m('ADD', top, PH), te(0.02)),     # parapet
-             flight(m('SUBTRACT', W, 0.36), m('ADD', W, 0.05), m('ADD', top, PH - 0.08), m('ADD', top, PH + 0.06), te(0.05)),  # coping
+    # parapet top and coping step together a few mm apart, so their risers must be flat and never vertical (td), or the two cross or coincide
+    steps = (flight(-0.15, m('SUBTRACT', W, 0.15), B, top, tS, tD),                                    # body, into the wall (chords at corners)
+             flight(m('SUBTRACT', W, 0.3), W, m('SUBTRACT', B, 0.01), m('ADD', top, PH), te(0.02), tD), # parapet
+             flight(m('SUBTRACT', W, 0.36), m('ADD', W, 0.05), m('ADD', top, PH - 0.08), m('ADD', top, PH + 0.06), te(0.05), tD),  # coping
              flight(-0.04, m('ADD', W, 0.03), m('SUBTRACT', B, 0.02), m('ADD', m('ADD', B, SH), PH + 0.03),  # end wall past the top tread
                     m('ADD', m('SUBTRACT', E, 0.05), m('MULTIPLY', m('DIVIDE', r_, m('SUBTRACT', m('MULTIPLY', NS, 2), 1)), 0.35))))
 
