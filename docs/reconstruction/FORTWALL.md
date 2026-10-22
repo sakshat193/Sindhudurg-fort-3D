@@ -103,4 +103,4 @@ The real-fort scene uses this method:
 - Bastions are disks with the terrace areas. The wall is chorded through each disk.
 - Bastion and stair empties have been hand-placed. Keep them as they are.
 
-The exporter that produced the spine JSON from `web/dist` (`makeSampler` plus survey data) is not yet in the repository.
+The toe Z came from the terrain grid in `reconstruction/data/survey.json`, sampled bilinearly inside the outline. The script that exported the spine lived in the removed web viewer and is not in the repository.

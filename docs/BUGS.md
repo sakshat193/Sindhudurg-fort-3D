@@ -1,6 +1,6 @@
 # Bugs, fixes and lessons
 
-Every bug found so far, what caused it, and the rule that prevents it. Read this before you change `fortwall/generator.py`, `web/dist/wall-system.js` or the Blender scenes. Add new entries at the top of the relevant section.
+Every bug found so far, what caused it, and the rule that prevents it. Read this before you change `fortwall/generator.py` or the Blender scenes. Add new entries at the top of the relevant section.
 
 ## FortWall generator (`fortwall/generator.py`)
 
@@ -54,22 +54,6 @@ Every bug found so far, what caused it, and the rule that prevents it. Read this
 | `zslope` TypeError in the spine export | It used a stale length after the spine changed. | Read `spine.length` inside the loop. |
 | `Draft1.blend` satellite image missing | It points to the absolute `B:\Blender_Fort_Reconstruction\GOOGLE_SAT_WM.tif`. | **Open.** Relink it to `SAT/GOOGLE_SAT_WM.tif` in Blender. Use relative paths (`//`) for all new images. |
 | The embedded `SD2_build_sindhudurg.py` in `Sindhudurg_1to1_Procedural.blend` uses old paths | The 2026-10-17 folder move. | Run `reconstruction/build_sindhudurg.py` from disk. |
-
-## Web viewer (`web/`)
-
-| Bug | Cause | Fix and rule |
-|---|---|---|
-| Editable walls reject the default design ("overlaps Hanuman") | **Open.** The worker omits the Hanuman clearance that the bake uses. | Pass the same clearances to the worker as `survey.mjs` does. |
-| Explore crops the fort at 390 px width | **Open.** | Fit the camera to the fort's bounds on narrow screens. |
-| Full wall build takes 52 s (target 6 s) | **Open.** | Profile before optimising. |
-| Shore triangles bridged incompatible height fields | One mesh spanned the interior and exterior. | Mesh each side along the exact mapped boundary, then unite the closed solids. |
-| Old wall trenches stayed after editing | Terrain was cut once. | Keep a cavity-preserving island source, and subtract the committed wall on each build. |
-| Multi-metre shoulder steps at bastion decks | Decks were flat. | Loft decks and parapets against the adjoining wall elevation. |
-| A cutter count implied an opening that didn't exist | Only the count was checked. | Require a positive intersection and a continuous roof along each passage. |
-| Moved bastions left ghost projections | The source bulge stayed in the curve. | Release an untouched projection to its shoulder chord when the bastion is moved or removed. |
-| Merlon rhythm restarted at vertices | Each segment had its own stationing. | Use one stationing rule around the exposed circuit. |
-| Rounded masonry edges | Shared vertex normals. | Use separate face normals for the stone mesh. |
-| Browser tests could not run outside Codex | The Playwright scripts used a Codex-only runtime path. | Removed. Don't hardcode tool-specific paths in tests. |
 
 ## Tools and environment
 

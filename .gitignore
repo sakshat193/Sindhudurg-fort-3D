@@ -1,12 +1,7 @@
-# Dependencies and tool state
-node_modules/
+# Tool state
 .claude/
 .codex/
 .playwright-mcp/
-.openai/
-.handoff/
-.sites-runtime/
-.sites-checkout/
 __pycache__/
 *.py[cod]
 
@@ -18,8 +13,6 @@ __pycache__/
 *.tmp
 *.bak
 reconstruction/data/render_status.json
-web/*.png
-web/dist/_*.html
 
 # Archives and deploy bundles
 *.zip

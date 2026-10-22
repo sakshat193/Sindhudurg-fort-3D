@@ -1,11 +1,8 @@
 * text=auto eol=lf
-*.bin binary
 *.blend binary
 *.npz binary
-*.wasm binary
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.tif binary
 *.exr binary
-*.glb binary
